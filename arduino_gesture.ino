@@ -1,112 +1,179 @@
+#include "RevEng_PAJ7620.h"
+#include <IRremote.h>
 
-#include <Wire.h>
-#include "paj7620.h"
+// Create gesture sensor driver object
+RevEng_PAJ7620 sensor = RevEng_PAJ7620();
 
-/*
-    Notice: When you want to recognize the Forward/Backward gestures, your gestures' reaction time must less than GES_ENTRY_TIME(0.8s).
-        You also can adjust the reaction time according to the actual circumstance.
-*/
-#define GES_REACTION_TIME   100       // You can adjust the reaction time according to the actual circumstance.
-#define GES_ENTRY_TIME      300       // When you want to recognize the Forward/Backward gestures, your gestures' reaction time must less than GES_ENTRY_TIME(0.8s). 
-#define GES_QUIT_TIME     400
 
-void setup() {
-    uint8_t error = 0;
+#define BIT_SIZE              32
+#define TV_POWER              0xE0E040BF
+#define TV_VOLUME_UP          0xE0E0E01F
+#define TV_VOLUME_DOWN        0xE0E0D02F
+#define TV_OK                 0xE0E016E9
+#define TV_RETURN .           0xE0E01AE5
+#define TV_RIGHT              0xE0E046B9
+#define TV_LEFT               0xE0E0A659
+#define TV_UP                 0xE0E006F9
+#define TV_DOWN               0xE0E08679
 
-    Serial.begin(9600);
-    Serial.println("\nPAJ7620U2 TEST DEMO: Recognize 9 gestures.");
-    Serial.println("Starting init now");
-    
-    error = paj7620Init();      // initialize Paj7620 registers
 
-    if (error) {
-        Serial.print("INIT ERROR,CODE:");
-        Serial.println(error);
-    } else {
-        Serial.println("INIT OK");
-    }
-    Serial.println("Please input your gestures:\n");
+const int SEND_PIN = 7;
+const int power = 4;
+const int info = 5;
+const int factory = 6;
+const int threespeed = 7;
+
+IRsend irsend(SEND_PIN);
+
+void setup(){
+
+  pinMode (power, INPUT_PULLUP);
+  pinMode (info, INPUT_PULLUP);
+  pinMode (factory, INPUT_PULLUP);
+  pinMode (threespeed, INPUT_PULLUP);
+  
+  uint8_t error = 0;
+
+  Serial.begin(115200);
+
+  Serial.println("PAJ7620 sensor demo: Recognizing all 9 gestures.");
+
+  if( !sensor.begin() ) 
+  {
+    Serial.print("PAJ7620 I2C error - halting");
+    while(true) { }
+  }
+
+  Serial.println("PAJ7620 init: OK");
+  Serial.println("Please input your gestures:");
 }
 
-void loop() {
-    uint8_t data = 0, data1 = 0, error;
 
-    error = paj7620ReadReg(0x43, 1, &data);       // Read Bank_0_Reg_0x43/0x44 for gesture result.
-    if (!error) {
-        switch (data) {               // When different gestures be detected, the variable 'data' will be set to different values by paj7620ReadReg(0x43, 1, &data).
-            case GES_RIGHT_FLAG:
-                delay(GES_ENTRY_TIME);
-                paj7620ReadReg(0x43, 1, &data);
-                if (data == GES_FORWARD_FLAG) {
-                    Serial.println("Forward");
-                    delay(GES_QUIT_TIME);
-                } else if (data == GES_BACKWARD_FLAG) {
-                    Serial.println("Backward");
-                    delay(GES_QUIT_TIME);
-                } else {
-                    Serial.println("Right");
-                }
-                break;
-            case GES_LEFT_FLAG:
-                delay(GES_ENTRY_TIME);
-                paj7620ReadReg(0x43, 1, &data);
-                if (data == GES_FORWARD_FLAG) {
-                    Serial.println("Forward");
-                    delay(GES_QUIT_TIME);
-                } else if (data == GES_BACKWARD_FLAG) {
-                    Serial.println("Backward");
-                    delay(GES_QUIT_TIME);
-                } else {
-                    Serial.println("Left");
-                }
-                break;
-            case GES_UP_FLAG:
-                delay(GES_ENTRY_TIME);
-                paj7620ReadReg(0x43, 1, &data);
-                if (data == GES_FORWARD_FLAG) {
-                    Serial.println("Forward");
-                    delay(GES_QUIT_TIME);
-                } else if (data == GES_BACKWARD_FLAG) {
-                    Serial.println("Backward");
-                    delay(GES_QUIT_TIME);
-                } else {
-                    Serial.println("Up");
-                }
-                break;
-            case GES_DOWN_FLAG:
-                delay(GES_ENTRY_TIME);
-                paj7620ReadReg(0x43, 1, &data);
-                if (data == GES_FORWARD_FLAG) {
-                    Serial.println("Forward");
-                    delay(GES_QUIT_TIME);
-                } else if (data == GES_BACKWARD_FLAG) {
-                    Serial.println("Backward");
-                    delay(GES_QUIT_TIME);
-                } else {
-                    Serial.println("Down");
-                }
-                break;
-            case GES_FORWARD_FLAG:
-                Serial.println("Forward");
-                delay(GES_QUIT_TIME);
-                break;
-            case GES_BACKWARD_FLAG:
-                Serial.println("Backward");
-                delay(GES_QUIT_TIME);
-                break;
-            case GES_CLOCKWISE_FLAG:
-                Serial.println("Clockwise");
-                break;
-            case GES_COUNT_CLOCKWISE_FLAG:
-                Serial.println("anti-clockwise");
-                break;
-            default:
-                paj7620ReadReg(0x44, 1, &data1);
-                if (data1 == GES_WAVE_FLAG) {
-                    Serial.println("wave");
-                }
-                break;
-        }
-    }
-    delay(100);
+void loop() {
+  Gesture gesture;                  // Gesture is an enum type from RevEng_PAJ7620.h
+  gesture = sensor.readGesture();   // Read back current gesture (if any) of type Gesture
+
+  switch (gesture)
+  {
+    case GES_FORWARD:
+      {
+        sendOk();
+        Serial.print("GES_FORWARD");
+        break;
+      }
+
+    case GES_BACKWARD:
+      {
+        Serial.print("GES_BACKWARD");
+        break;
+      }
+
+    case GES_LEFT:
+      {
+        sendLeft();
+        Serial.print("GES_LEFT");
+        break;
+      }
+
+    case GES_RIGHT:
+      {
+        sendRight();
+        Serial.print("GES_RIGHT");
+        break;
+      }
+
+    case GES_UP:
+      {
+        sendUp();
+        Serial.print("GES_UP");
+        break;
+      }
+
+    case GES_DOWN:
+      {
+        sendDown();
+        Serial.print("GES_DOWN");
+        break;
+      }
+
+    case GES_CLOCKWISE:
+      {
+        sendVolumeUp();
+        Serial.print("GES_CLOCKWISE");
+        break;
+      }
+
+    case GES_ANTICLOCKWISE:
+      {
+        sendVolumeDown();
+        Serial.print("GES_ANTICLOCKWISE");
+        break;
+      }
+
+    case GES_WAVE:
+      {
+        sendPowerOn();
+        Serial.print("GES_WAVE");
+        break;
+      }
+
+    case GES_NONE:
+      {
+        break;
+      }
+  }
+
+  if( gesture != GES_NONE )
+  {
+    Serial.print(", Code: ");
+    Serial.println(gesture);
+  }
+
+  delay(100);
+}
+
+void sendPowerOn(){
+   irsend.sendSAMSUNG(TV_POWER, BIT_SIZE); 
+}
+
+void sendOk(){
+   irsend.sendSAMSUNG(TV_OK, BIT_SIZE); 
+   irsend.sendSAMSUNG(TV_OK, BIT_SIZE); 
+}
+
+void sendUp(){
+   irsend.sendSAMSUNG(TV_UP, BIT_SIZE); 
+   irsend.sendSAMSUNG(TV_UP, BIT_SIZE); 
+}
+
+void sendDown(){
+   irsend.sendSAMSUNG(TV_DOWN, BIT_SIZE); 
+   irsend.sendSAMSUNG(TV_DOWN, BIT_SIZE); 
+}
+
+void sendLeft(){
+   irsend.sendSAMSUNG(TV_LEFT, BIT_SIZE); 
+   irsend.sendSAMSUNG(TV_LEFT, BIT_SIZE); 
+}
+
+void sendRight(){
+   irsend.sendSAMSUNG(TV_RIGHT, BIT_SIZE); 
+   irsend.sendSAMSUNG(TV_RIGHT, BIT_SIZE); 
+}
+
+void sendVolumeUp(){
+   irsend.sendSAMSUNG(TV_VOLUME_UP, BIT_SIZE); 
+   irsend.sendSAMSUNG(TV_VOLUME_UP, BIT_SIZE); 
+   irsend.sendSAMSUNG(TV_VOLUME_UP, BIT_SIZE); 
+   irsend.sendSAMSUNG(TV_VOLUME_UP, BIT_SIZE); 
+   irsend.sendSAMSUNG(TV_VOLUME_UP, BIT_SIZE); 
+   irsend.sendSAMSUNG(TV_VOLUME_UP, BIT_SIZE); 
+}
+
+void sendVolumeDown(){
+   irsend.sendSAMSUNG(TV_VOLUME_DOWN, BIT_SIZE); 
+   irsend.sendSAMSUNG(TV_VOLUME_DOWN, BIT_SIZE); 
+   irsend.sendSAMSUNG(TV_VOLUME_DOWN, BIT_SIZE); 
+   irsend.sendSAMSUNG(TV_VOLUME_DOWN, BIT_SIZE); 
+   irsend.sendSAMSUNG(TV_VOLUME_DOWN, BIT_SIZE); 
 }
