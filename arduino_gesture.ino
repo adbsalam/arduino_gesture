@@ -47,23 +47,21 @@ void loop()
 {
   uint8_t data = 0, data1 = 0, error; 
 
-  error = paj7620ReadReg(0x43, 1, &data);       // Read Bank_0_Reg_0x43/0x44 for gesture result.
+  error = paj7620ReadReg(0x43, 1, &data);      
   if (!error) 
   {
-    switch (data)                   // When different gestures be detected, the variable 'data' will be set to different values by paj7620ReadReg(0x43, 1, &data).
+    switch (data)                 
     {
       case GES_RIGHT_FLAG:
         delay(GES_REACTION_TIME);
         paj7620ReadReg(0x43, 1, &data);
         if(data == GES_LEFT_FLAG) 
         {
-          sendReturn();
-          Serial.println("Right-Left");
+          sendCommand(TV_RETURN, "Right-Left");
         }
         else if(data == GES_FORWARD_FLAG) 
         {
-          sendOk();
-          Serial.println("Forward");
+          sendCommand(TV_OK, "Forward");
           delay(GES_QUIT_TIME);
         }
         else if(data == GES_BACKWARD_FLAG) 
@@ -73,8 +71,7 @@ void loop()
         }
         else
         {
-          sendRight();
-          Serial.println("Right");
+          sendCommand(TV_RIGHT, "Right");
         }          
         break;
       case GES_LEFT_FLAG:
@@ -82,8 +79,7 @@ void loop()
         paj7620ReadReg(0x43, 1, &data);
         if(data == GES_RIGHT_FLAG) 
         {
-          sendReturn();
-          Serial.println("Left-Right");
+          sendCommand(TV_RETURN, "Left-Right");
         }
         else if(data == GES_FORWARD_FLAG) 
         {
@@ -97,8 +93,7 @@ void loop()
         }
         else
         {
-          sendLeft();
-          Serial.println("Left");
+          sendCommand(TV_LEFT, "Left");
         }          
         break;
         break;
@@ -121,8 +116,7 @@ void loop()
         }
         else
         {
-          sendUp();
-          Serial.println("Up");
+          sendCommand(TV_UP, "Up");
         }
         break;
       case GES_DOWN_FLAG:
@@ -144,8 +138,7 @@ void loop()
         }
         else
         {
-          sendDown();
-          Serial.println("Down");
+          sendCommand(TV_DOWN, "Down");
         }
         break;
       case GES_FORWARD_FLAG:
@@ -153,14 +146,12 @@ void loop()
         paj7620ReadReg(0x43, 1, &data);
         if(data == GES_BACKWARD_FLAG) 
         {
-          sendHome();
-          Serial.println("Forward-Backward");
+          sendCommand(TV_HOME, "Forward-Backward");
           delay(GES_QUIT_TIME);
         }
         else
         {
-          sendOk();
-          Serial.println("Forward");
+          sendCommand(TV_OK, "Forward");
           delay(GES_QUIT_TIME);
         }
         break;
@@ -179,19 +170,16 @@ void loop()
         }
         break;
       case GES_CLOCKWISE_FLAG:
-        sendVolumeUp();
-        Serial.println("Clockwise");
+        sendCommand(TV_VOLUME_UP, "Clockwise");
         break;
       case GES_COUNT_CLOCKWISE_FLAG:
-        sendVolumeDown();
-        Serial.println("anti-clockwise");
+        sendCommand(TV_VOLUME_DOWN, "anti-clockwise");
         break;  
       default:
         paj7620ReadReg(0x44, 1, &data1);
         if (data1 == GES_WAVE_FLAG) 
         {
-          sendPowerOn();
-          Serial.println("wave");
+          sendCommand(TV_POWER, "wave");
         }
         break;
     }
@@ -199,57 +187,9 @@ void loop()
   delay(100);
 }
 
-void sendPowerOn(){
-   irsend.sendSAMSUNG(TV_POWER, BIT_SIZE); 
-}
-
-void sendReturn(){
-   irsend.sendSAMSUNG(TV_RETURN, BIT_SIZE); 
-}
-
-void sendOk(){
-   irsend.sendSAMSUNG(TV_OK, BIT_SIZE); 
-   irsend.sendSAMSUNG(TV_OK, BIT_SIZE); 
-}
-
-void sendUp(){
-   irsend.sendSAMSUNG(TV_UP, BIT_SIZE); 
-   irsend.sendSAMSUNG(TV_UP, BIT_SIZE); 
-}
-
-void sendDown(){
-   irsend.sendSAMSUNG(TV_DOWN, BIT_SIZE); 
-   irsend.sendSAMSUNG(TV_DOWN, BIT_SIZE); 
-}
-
-void sendLeft(){
-   irsend.sendSAMSUNG(TV_LEFT, BIT_SIZE); 
-   irsend.sendSAMSUNG(TV_LEFT, BIT_SIZE); 
-}
-
-void sendRight(){
-   irsend.sendSAMSUNG(TV_RIGHT, BIT_SIZE); 
-   irsend.sendSAMSUNG(TV_RIGHT, BIT_SIZE); 
-}
-
-void sendHome(){
-   irsend.sendSAMSUNG(TV_HOME, BIT_SIZE); 
-   irsend.sendSAMSUNG(TV_HOME, BIT_SIZE); 
-}
-  
-void sendVolumeUp(){
-   irsend.sendSAMSUNG(TV_VOLUME_UP, BIT_SIZE); 
-   irsend.sendSAMSUNG(TV_VOLUME_UP, BIT_SIZE); 
-   irsend.sendSAMSUNG(TV_VOLUME_UP, BIT_SIZE); 
-   irsend.sendSAMSUNG(TV_VOLUME_UP, BIT_SIZE); 
-   irsend.sendSAMSUNG(TV_VOLUME_UP, BIT_SIZE); 
-   irsend.sendSAMSUNG(TV_VOLUME_UP, BIT_SIZE); 
-}
-
-void sendVolumeDown(){
-   irsend.sendSAMSUNG(TV_VOLUME_DOWN, BIT_SIZE); 
-   irsend.sendSAMSUNG(TV_VOLUME_DOWN, BIT_SIZE); 
-   irsend.sendSAMSUNG(TV_VOLUME_DOWN, BIT_SIZE); 
-   irsend.sendSAMSUNG(TV_VOLUME_DOWN, BIT_SIZE); 
-   irsend.sendSAMSUNG(TV_VOLUME_DOWN, BIT_SIZE); 
+void sendCommand(uint32_t command, String gesture){
+  Serial.println(gesture); 
+  irsend.sendSAMSUNG(command, BIT_SIZE); 
+  irsend.sendSAMSUNG(command, BIT_SIZE); 
+  irsend.sendSAMSUNG(command, BIT_SIZE);
 }
