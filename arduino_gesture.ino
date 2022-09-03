@@ -25,6 +25,7 @@ const int power = 4;
 const int info = 5;
 const int factory = 6;
 const int threespeed = 7;
+const int irPowerPin = 2;
 
 IRsend irsend(SEND_PIN);
 
@@ -188,8 +189,10 @@ void loop()
 }
 
 void sendCommand(uint32_t command, String gesture){
+  digitalWrite(irPowerPin, HIGH);
   Serial.println(gesture); 
   irsend.sendSAMSUNG(command, BIT_SIZE); 
   irsend.sendSAMSUNG(command, BIT_SIZE); 
   irsend.sendSAMSUNG(command, BIT_SIZE);
+  digitalWrite(irPowerPin, LOW);
 }
